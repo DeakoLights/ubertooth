@@ -137,6 +137,8 @@ static void usage(void)
 
 	printf("\nIf an input file is not specified, an Ubertooth device is used for live capture.\n");
 	printf("In get/set mode no capture occurs.\n");
+
+	printf("\t-R<rssi> max rssi filter\n");
 }
 
 int main(int argc, char *argv[])
@@ -152,7 +154,7 @@ int main(int argc, char *argv[])
 	int ubertooth_device = -1;
 	ubertooth_t* ut = ubertooth_init();
 
-	btle_options cb_opts = { .allowed_access_address_errors = 32 };
+	btle_options cb_opts = { .allowed_access_address_errors = 32, .rssi_filter = NO_RSSI_FILTER };
 
 	int r;
 	u32 access_address;
@@ -165,7 +167,7 @@ int main(int argc, char *argv[])
 	do_adv_index = 37;
 	do_slave_mode = do_target = 0;
 
-	while ((opt=getopt(argc,argv,"a::r:hfnpU:v::A:s:t:x:c:q:jJiI")) != EOF) {
+	while ((opt=getopt(argc,argv,"a::r:hfnpU:v::A:s:t:x:c:q:jJiIR:")) != EOF) {
 		switch(opt) {
 		case 'a':
 			if (optarg == NULL) {
@@ -262,6 +264,13 @@ int main(int argc, char *argv[])
 		case 'I':
 		case 'J':
 			jam_mode = JAM_CONTINUOUS;
+			break;
+		case 'R':
+			if (optarg) {
+				cb_opts.rssi_filter = atoi(optarg);
+			} else {
+				printf("need an rssi");
+			}
 			break;
 		case 'h':
 		default:

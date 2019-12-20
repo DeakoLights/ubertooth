@@ -24,6 +24,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <math.h>
 
 #include "ubertooth_callback.h"
 
@@ -100,6 +101,26 @@ static uint64_t now_ns( void )
 	(void) clock_gettime( CLOCK_REALTIME, &ts );
 	return (1000000000ull*(uint64_t) ts.tv_sec) + (uint64_t) ts.tv_nsec;
 #endif
+}
+
+void print_current_time_with_ms (void)
+{
+    long            ms; // Milliseconds
+    time_t          s;  // Seconds
+    struct timespec spec;
+
+    clock_gettime(CLOCK_REALTIME, &spec);
+
+    s  = spec.tv_sec;
+    ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+    if (ms > 999) {
+        s++;
+        ms = 0;
+    }
+
+	ms = s*1000 + ms;
+
+    printf("Current time: %ld milliseconds since the Epoch\n",ms);
 }
 
 static void track_clk100ns( ubertooth_t* ut, const usb_pkt_rx* rx )
@@ -379,6 +400,14 @@ void cb_btle(ubertooth_t* ut, void* args)
 		return;
 	}
 
+		/* do nothing further if filtered due to bad AA */
+	if (opts && opts->rssi_filter > (rx->rssi_min - 54)) {
+	    // lell_get_access_address_offenses(pkt))) {
+		// lell_packet_unref(pkt);
+		return;
+	}
+
+
 	/* Dump to PCAP/PCAPNG if specified */
 	refAA = lell_packet_is_data(pkt) ? 0 : 0x8e89bed6;
 	sig = cc2400_rssi_to_dbm( rx->rssi_max );
@@ -409,6 +438,7 @@ void cb_btle(ubertooth_t* ut, void* args)
 		rx_ts += 3276800000;
 	u32 ts_diff = rx_ts - prev_ts;
 	prev_ts = rx->clk100ns;
+	print_current_time_with_ms();
 	printf("systime=%u freq=%d addr=%08x delta_t=%.03f ms rssi=%d\n",
 	       systime, rx->channel + 2402, lell_get_access_address(pkt),
 	       ts_diff / 10000.0, rx->rssi_min - 54);
